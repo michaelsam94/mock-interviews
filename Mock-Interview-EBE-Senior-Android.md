@@ -17,6 +17,20 @@ This document collects questions and drafted answers for interview preparation. 
 
 ---
 
+## Answering with ADD (Matt Abrahams, *Think Faster, Talk Smarter*)
+
+Use **ADD** to open your answer, then use the **Short version** and bullets for detail.
+
+| Step | What to do |
+|------|------------|
+| **A — Answer** | One **clear** sentence that answers the question. |
+| **D — Detail** | A **concrete** example—**replace** **`_(your example)_`** with your real banking/Android work. |
+| **D — Describe relevance** | Why it matters for **EBE** / **banking** / **Senior Android** expectations. |
+
+Each question below includes an **ADD** block after **`**Answer (simple English, enhanced)**`**.
+
+---
+
 ## Questions & answers
 
 ### Question 1
@@ -24,6 +38,11 @@ This document collects questions and drafted answers for interview preparation. 
 **Imagine you're working on a new banking feature in an app using MVVM and Clean Architecture—how would you structure the layers and handle state with Coroutines or Flow?**
 
 **Answer (simple English, enhanced)**
+
+**ADD**  
+- **A — Answer:** I use **Presentation → Domain → Data**: **ViewModel** calls **use cases**, **StateFlow** for screen state, **coroutines** + **Flow** with correct **dispatchers**—**domain** stays free of **Retrofit** / **Android** imports.  
+- **D — Detail:** _(your example)_ **Repository** implements API + **Room**, **fake** use cases in **ViewModel** tests—*(banking screen you shipped)*.  
+- **D — Describe relevance:** **EBE**-style **banking** needs **correct** **layering** and **safe** UI state—this shows **Clean** **Architecture** under real constraints.
 
 **Short version (about 30 seconds)**  
 I use **three main layers**: **Presentation** (UI + **ViewModel**), **Domain** (**use cases** + pure **models**), and **Data** (**repository** implementations + remote/local sources). The **ViewModel** talks only to **use cases**, not to Retrofit or Room directly. **State** is **immutable** and exposed with **`StateFlow`** (or **`SharedFlow`** for one-off events like errors/snacks). **Coroutines** run in **`viewModelScope`** with the right **`Dispatcher`**; **Flow** from the domain/data layers can be **`stateIn`** / **`shareIn`** in the ViewModel so the UI gets a simple, testable stream.
@@ -83,6 +102,11 @@ Full Clean Architecture with **many** thin use cases can be **verbose** for tiny
 **How would you ensure that the Coroutines in your ViewModel handle backpressure or high-frequency updates from data sources, especially under those tight deadlines you mentioned?**
 
 **Answer (simple English, enhanced)**
+
+**ADD**  
+- **A — Answer:** I **shape** hot streams with **`conflate`**, **`debounce`**, **`distinctUntilChanged`**, and **tight** **`shareIn`** buffers so the UI does not **flood** under **load**.  
+- **D — Detail:** _(your example)_ **Balance** ticks or **price** updates **conflated** to **latest**; heavy mapping on **`Dispatchers.Default`**—*(your stream)*.  
+- **D — Describe relevance:** **Banking** UIs must stay **smooth** at peak **without** **wrong** **balances**—**timing** can change, **truth** cannot.
 
 **Short version (about 30 seconds)**  
 **Kotlin Flow** already **slows the producer** when the collector is slow—**suspend** is the default backpressure story. When updates are **too fast for the UI**, I **shape** the stream: **`conflate()`** keeps only the **latest** value, **`debounce`** waits for a **pause**, **`distinctUntilChanged`** skips **duplicates**. For **shared** hot streams I configure **`shareIn`** / **`stateIn`** with a **small buffer** and **`onBufferOverflow = DROP_OLDEST`** (or **`LATEST`**) so we **do not** grow memory. Under a **deadline**, I fix the **noisiest** stream first—usually **one operator**—and push **heavy** mapping **down** to **`flowOn(Dispatchers.Default)`** so the main collector stays light.
@@ -146,6 +170,11 @@ High frequency must **not** mean **inconsistent** balances: I still **map** to *
 **Suppose you're dealing with a critical screen showing slow load times and occasional ANRs in production—how would you approach isolating the bottleneck using profiling tools, and what would be your first step in deciding what to optimize?**
 
 **Answer (simple English, enhanced)**
+
+**ADD**  
+- **A — Answer:** I **measure** with **Play** **ANRs**, **Firebase**, **CPU** **System** **Trace**, then **classify** the cost (**main** **CPU** vs **block** vs **network** vs **GC**) before I **optimize**.  
+- **D — Detail:** _(your example)_ **Profiler** shows **parse** on **Main** → move to **Default**; **Macrobenchmark** on **cold** start—*(slow screen you fixed)*.  
+- **D — Describe relevance:** **Senior** engineers **prove** **bottlenecks** with **data**—critical for **customer-facing** **banking** flows.
 
 **Short version (about 30 seconds)**  
 I **do not** guess—I **reproduce** and **measure**. I pull **ANR traces** from **Play Console** or **Firebase Crashlytics** (if linked) and look for **blocked main thread** (long frames, **Binder** waits, **locks**). Locally I use **Android Studio Profiler**: **CPU** (record a trace—**System Trace** / **Perfetto**-style) while opening the screen, plus **Memory** if I suspect **GC** pressure. **`Baseline Profiles`** / **`Macrobenchmark`** help **cold start** and **jank**. My **first optimization decision** comes from **where time goes**: if the **main thread** is busy → fix **layout**, **work on Main**, or **too much work per frame**; if the **main thread waits** → **I/O**, **locks**, or **slow** remote—then I move work or **parallelize** off Main. **Biggest user-visible win first** after I know the **bottleneck**.
@@ -215,6 +244,11 @@ I add **light** **telemetry** (screen **open** → **first** **meaningful** **pa
 
 **Answer (simple English, enhanced)**
 
+**ADD**  
+- **A — Answer:** I **compare** **before/after** **ANR** **rates** and **traces**, run **benchmarks** on **touched** **flows**, use **staged** **rollout** and **flags**, and **test** **nearby** **modules** that **share** **code**.  
+- **D — Detail:** _(your example)_ **Play** **Console** **ANR** **by** **version**; **Macrobenchmark** on **login** **path**; **smoke** **suite**—*(your verification story)*.  
+- **D — Describe relevance:** **EBE** needs **proof** the **ANR** **fix** **did not** **break** **other** **banking** **journeys**.
+
 **Short version (about 30 seconds)**  
 I treat it like a **small release**: **baseline** metrics **before** the fix, then **compare** **after** on the **same** **journeys**. I use **Play Console** / **Firebase** **ANR** and **crash** rates by **version**, plus **custom** **timings** for the **screen** we touched. **Locally** I **re-run** **CPU**/**Macrobenchmark** on the **hot path** and run **automated** **UI**/**integration** tests for **nearby** flows. I ship through **internal** → **beta** → **staged** rollout with **alerts** if **ANR** or **errors** **jump**. **Feature flags** help: I can **toggle** the fix for a **slice** of users and **watch** dashboards. For **regressions**, I focus on **shared** code we changed—**threading** and **ordering**—and add **tests** where the bug was **invisible** to the old **checks**.
 
@@ -269,6 +303,11 @@ I make a **short** **blast radius** list: **shared** **modules**, **DI** **graph
 **I'm curious about a different area now—tell me how you would design a secure networking layer when integrating a new RESTful backend using Retrofit and SSL pinning—specifically, how would you handle token-based authentication on the device?**
 
 **Answer (simple English, enhanced)**
+
+**ADD**  
+- **A — Answer:** I put **TLS** **pinning** and **token** **handling** in **OkHttp** (**CertificatePinner**, **interceptors**, **single-flight** **refresh**), store **tokens** in **encrypted** storage, and **never** log **secrets**.  
+- **D — Detail:** _(your example)_ **DataStore** / **EncryptedSharedPreferences** + **401** **refresh** with a **mutex**—*(banking app login flow you built)*.  
+- **D — Describe relevance:** **EBE** **banking** clients must resist **MITM** and **token** **theft**—this is **table-stakes** **security** on **Android**.
 
 **Short version (about 30 seconds)**  
 I build **one** **`OkHttpClient`** used by **Retrofit**: **`CertificatePinner`** pins the **server** **public keys** (**SPKI** **hashes**), with a **backup** **pin** for **rotation**. **Interceptors** add **`Authorization: Bearer <access>`** and handle **401** with a **safe**, **single** **refresh** flow (**mutex** / **one** **in-flight** **refresh**) so we **do not** **storm** the **token** **endpoint**. **Tokens** live in **encrypted** storage (**DataStore** with **encryption** or **`EncryptedSharedPreferences`**), **not** plain **SharedPreferences**; **refresh** tokens get **stricter** handling when the backend allows **separation**. **No** tokens in **logs** or **crash** reports; **release** builds use **redacted** **OkHttp** logging or **none**.
@@ -330,6 +369,11 @@ I avoid **hard-coding** **secrets** in **APK**; **client** **IDs** may be **publ
 
 **Answer (simple English, enhanced)**
 
+**ADD**  
+- **A — Answer:** I **classify** errors, **retry** only **transient** failures with **bounded** **backoff** **+** **jitter**, **respect** **429**, and **never** **auto-retry** unsafe **POSTs** without **idempotency**—then **map** to **domain** errors for the **UI**.  
+- **D — Detail:** _(your example)_ **Repository**-level **retry** policy; **verify** **payment** **status** on **unknown** **writes**—*(API behavior you handled)*.  
+- **D — Describe relevance:** **Banking** **networking** must avoid **double** **charges** and **honest** **UX** under **flaky** **mobile** **networks**.
+
 **Short version (about 30 seconds)**  
 I **split** problems into **three** buckets: **transport** errors (**timeouts**, **no** **network**), **server** **errors** (**5xx**), and **client** **errors** (**4xx**). I **only** **retry** when it is **safe** and **likely** to **help**: **transient** **network** / **5xx**, with **caps** (**max** **attempts**, **max** **delay**). **Backoff** is **exponential** with **jitter** so **many** **phones** do **not** **hit** the **server** at the **same** **instant**. I **do not** **blindly** **retry** **non-idempotent** **writes** (**POST** **payments**) **without** **idempotency** **keys** or **clear** **server** **rules**. **429** respects **`Retry-After`** when **present**. At the **edge** of the **app**, I **map** errors to **stable** **domain** **types** so the **UI** shows **honest** **states**, not **raw** **HTTP** **codes**.
 
@@ -390,6 +434,11 @@ If the **service** is **down** for **everyone**, **endless** **retries** **hurt*
 **Now I want to make sure we cover another area—how would you improve build and release reliability using Gradle and CI/CD, to speed up builds and enforce code quality for the Android team?**
 
 **Answer (simple English, enhanced)**
+
+**ADD**  
+- **A — Answer:** I speed up **Gradle** (**config** **cache**, **build** **cache**, **modules**), **pin** **toolchains**, and put **lint/tests** on **every** **PR** with **repeatable** **release** **pipelines** and **secrets** **outside** **git**.  
+- **D — Detail:** _(your example)_ **GitHub** **Actions** / **Bitrise** with **Gradle** **cache**; **internal** **track** on **Play**—*(your CI setup)*.  
+- **D — Describe relevance:** A **Senior** is expected to **multiply** the **team** with **fast**, **safe** **shipping**—**especially** in **regulated** **releases**.
 
 **Short version (about 30 seconds)**  
 On **Gradle** I turn on **safe** **speed** **features**: **configuration** **cache**, **parallel** **execution**, **build** **cache** (and **remote** **cache** if the **team** **can** **host** it), and **keep** **modules** **small** **enough** that **incremental** **work** **wins**. I **pin** the **Gradle** **Wrapper** and use a **version** **catalog** so **everyone** and **CI** use the **same** **dependencies**. On **CI/CD** I **cache** **Gradle** **home** and **wrapper**, run **`lint`**, **unit** **tests**, and **static** **analysis** on **every** **PR** (**fail** **fast**), and **build** **release** **artifacts** on **merge** with **clear** **signing** **secrets** in **CI** **stores**, not **in** **git**. **Release** **reliability** grows when **pipelines** are **repeatable**: **same** **commands** **locally** and on **servers**, **staged** **tracks** to **Play**, and **rollback** **rules**.
@@ -456,6 +505,11 @@ I also **avoid** **giant** **`allprojects`** **scripts** **without** **structure
 
 **Answer (simple English, enhanced)**
 
+**ADD**  
+- **A — Answer:** The biggest win I have seen is **splitting** a **kapt-heavy** **monolith** and **moving** **Room** to **KSP**, **proved** with **Gradle** **Build** **Scans**.  
+- **D — Detail:** _(your example)_ **Before/after** **annotation** **processing** time on a **one-line** **DAO** **change**—*(real module split)*.  
+- **D — Describe relevance:** **Faster** **builds** mean **faster** **feedback** for **every** **Android** **dev** on **EBE**-sized **codebases**.
+
 **Short version (about 30 seconds)**  
 A **bottleneck** I have **seen** **often** is **heavy** **`kapt`** **work** (**Hilt**, **Room**, **Moshi**) **inside** a **very** **large** **single** **module**: **every** **small** **edit** **forced** **a** **big** **re-compile** and **re-annotation** **pass**. The **one** **step** I **took** that **moved** the **needle** was **splitting** **that** **monolith** into **smaller** **Gradle** **modules** (**features** + **core**/**data**) so **Gradle** could **skip** **unchanged** **modules**, and **migrating** **Room** **from** **`kapt`** **to** **`KSP`** **in** **the** **data** **module** **first**—**KSP** is **faster** and **fits** **incremental** **builds** **better**. I **proved** it with a **Gradle** **Build** **Scan** (**--scan**) **before/after** on a **typical** **edit** **flow**.
 
@@ -495,6 +549,11 @@ This is **one** **concrete** **lever**: **smaller** **compile** **graphs** + **f
 **Understood—moving to the final area, how would you approach collaborating with a cross-functional squad to deliver a complex UI using Jetpack components, ensuring both performance and accessibility standards are met?**
 
 **Answer (simple English, enhanced)**
+
+**ADD**  
+- **A — Answer:** I align **early** on **states** and **a11y** with **product/design/QA**, then ship **Compose**/**Navigation**/**ViewModel** with **profiled** **performance** and **TalkBack**-ready **semantics**.  
+- **D — Detail:** _(your example)_ **LazyColumn** **keys**, **Macrobenchmark** on **jank**, **large** **font** **QA**—*(complex screen you shipped)*.  
+- **D — Describe relevance:** **EBE** **banking** UIs must be **fast** and **inclusive**—**accessibility** is often a **legal** and **brand** requirement, not a **nice-to-have**.
 
 **Short version (about 30 seconds)**  
 I **start** **early** with **product** **and** **design**: **one** **shared** **understanding** of **states** (**loading**, **empty**, **error**, **success**) and **edge** **cases**, **plus** **accessibility** **targets** (**TalkBack**, **font** **scale**, **touch** **size**) **before** **pixels** **freeze**. On **Android** I **build** with **Jetpack** **Compose** (or **Views** + **Material** if the **project** **requires**), **Navigation**, **ViewModel**, and **stable** **lists** (**`LazyColumn`** / **`RecyclerView`**). **Performance** is **baked** **in**: **stable** **parameters**, **keys** **for** **lists**, **avoid** **heavy** **work** **during** **composition**, **profile** **jank** with **Layout** **Inspector** / **Macrobenchmark**. **Accessibility** is **not** **last**: **`semantics`**, **labels**, **focus** **order**, **contrast** **checked** with **design**, and **QA** **runs** **real** **TalkBack** **passes** **before** **release**.
